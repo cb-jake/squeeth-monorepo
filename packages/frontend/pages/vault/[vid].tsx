@@ -458,7 +458,7 @@ const Component: React.FC = () => {
       if (!input) return
 
       const approvedAddress: string = await getApproved(input)
-      if (controller === (approvedAddress || '').toLowerCase()) {
+      if (controller.toLowerCase() === (approvedAddress || '').toLowerCase()) {
         setAction(VaultAction.DEPOSIT_UNI_POSITION)
       } else {
         setAction(VaultAction.APPROVE_UNI_POSITION)
@@ -1071,7 +1071,7 @@ const Component: React.FC = () => {
                     )}
                   </div>
 
-                  {currentLpNftId || isLPNFTAction ? (
+                  {(currentLpNftId || isLPNFTAction) && uniTokenToDeposit ? (
                     <>
                       <div className={classes.collatContainer}>
                         <TextField
@@ -1106,7 +1106,7 @@ const Component: React.FC = () => {
                     </>
                   ) : null}
                   <div className={classes.managerActions} style={{ marginTop: '16px' }}>
-                    {isLPDeposited ? (
+                    {isLPDeposited && uniTokenToDeposit ? (
                       <RemoveButton
                         id="remove-lp-nft-submit-tx-btn"
                         className={classes.actionBtn}
@@ -1121,7 +1121,7 @@ const Component: React.FC = () => {
                         )}
                       </RemoveButton>
                     ) : null}
-                    {!isLPDeposited && action === VaultAction.APPROVE_UNI_POSITION ? (
+                    {!isLPDeposited && action === VaultAction.APPROVE_UNI_POSITION && uniTokenToDeposit ? (
                       <AddButton
                         id="approve-lp-nft-submit-tx-btn"
                         onClick={() => approveUniLPToken(uniTokenToDeposit)}
@@ -1136,7 +1136,7 @@ const Component: React.FC = () => {
                         )}
                       </AddButton>
                     ) : null}
-                    {!isLPDeposited && action === VaultAction.DEPOSIT_UNI_POSITION ? (
+                    {!isLPDeposited && action === VaultAction.DEPOSIT_UNI_POSITION && uniTokenToDeposit ? (
                       <AddButton
                         id="deposit-lp-nft-submit-tx-btn"
                         onClick={() => depositUniLPToken(uniTokenToDeposit)}
