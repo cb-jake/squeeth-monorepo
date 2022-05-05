@@ -6,7 +6,7 @@ import { BIG_ZERO, TWELVEDATA_NO_PRICEDATA_DURATION } from '../constants/'
 import { swaps_swaps } from '../queries/uniswap/__generated__/swaps'
 import { VaultHistory_vaultHistories } from '../queries/squeeth/__generated__/VaultHistory'
 import { toTokenAmount } from '@utils/calculations'
-import { getHistoricEthPrice } from '@hooks/useETHPrice'
+import { getHistoricEthPrice, getHistoricEthPrices } from '@hooks/useETHPrice'
 import { getETHWithinOneDayPrices } from '@utils/ethPriceCharts'
 import { Action } from '../../types/global_apollo'
 
@@ -114,15 +114,17 @@ const getRelevantSwaps = (squeethAmount: BigNumber, swaps: swaps_swaps[], isWeth
 }
 
 const getSwapsWithEthPrice = async (swaps: swaps_swaps[]) => {
-  const swapPromises = swaps.map(async (swap) => {
-    const ethPrice = await getEthPriceAtTransactionTime(swap.timestamp)
-    return {
-      ...swap,
-      ethPrice,
-    }
+  const timestamps = swaps.map((s) => Number(s.timestamp) * 1000)
+
+  // Don't fetch if already fetched
+  const ethPriceMap = await queryClient.fetchQuery([timestamps], () => getHistoricEthPrices(timestamps), {
+    staleTime: Infinity,
   })
 
-  const swapsWithEthPrice = await Promise.all(swapPromises)
+  const swapsWithEthPrice = swaps.map((s) => ({
+    ...s,
+    ethPrice: new BigNumber(ethPriceMap[Number(s.timestamp) * 1000]),
+  }))
 
   return swapsWithEthPrice
 }
