@@ -63,11 +63,10 @@ export async function calcETHCollateralPnl(
   uniswapEthPrice: BigNumber,
   currentVaultEthBalance: BigNumber,
 ) {
-  const { deposits, withdrawals, priceError } = data?.length
-    ? await data?.reduce(async (prevPromise, vaultHistory: VaultHistory_vaultHistories) => {
-      const acc = await prevPromise
-
-      const ethPriceAtTimeOfAction = await getEthPriceAtTransactionTime(vaultHistory.timestamp)
+  const vaultHistories = await getVaultHistoriesWithEthPrice(data || [])
+  const { deposits, withdrawals, priceError } = vaultHistories.reduce(
+    (acc, vaultHistory) => {
+      const ethPriceAtTimeOfAction = vaultHistory.ethPrice
 
       if (ethPriceAtTimeOfAction?.isZero()) {
         acc.priceError = true
@@ -82,8 +81,9 @@ export async function calcETHCollateralPnl(
         )
       }
       return acc
-    }, Promise.resolve({ deposits: BIG_ZERO, withdrawals: BIG_ZERO, priceError: false }))
-    : { deposits: BIG_ZERO, withdrawals: BIG_ZERO, priceError: true }
+    },
+    { deposits: BIG_ZERO, withdrawals: BIG_ZERO, priceError: false },
+  )
 
   return !priceError ? currentVaultEthBalance.times(uniswapEthPrice).minus(deposits.minus(withdrawals)) : BIG_ZERO
 }
@@ -127,6 +127,22 @@ const getSwapsWithEthPrice = async (swaps: swaps_swaps[]) => {
   }))
 
   return swapsWithEthPrice
+}
+
+const getVaultHistoriesWithEthPrice = async (vaultHistories: VaultHistory_vaultHistories[]) => {
+  const timestamps = vaultHistories.map((v) => Number(v.timestamp) * 1000)
+
+  // Don't fetch if already fetched
+  const ethPriceMap = await queryClient.fetchQuery([timestamps], () => getHistoricEthPrices(timestamps), {
+    staleTime: Infinity,
+  })
+
+  const historyWithEthPrice = vaultHistories.map((v) => ({
+    ...v,
+    ethPrice: new BigNumber(ethPriceMap[Number(v.timestamp) * 1000]),
+  }))
+
+  return historyWithEthPrice
 }
 
 export async function calcDollarShortUnrealizedpnl(
@@ -209,6 +225,9 @@ const historicPriceQueryKeys = {
   historicPrice: (timestamp: string) => [`userPrice_${timestamp}`],
 }
 
+/**
+ * @deprecated
+ */
 async function getEthPriceAtTransactionTime(timestamp: string) {
   try {
     const timeInMilliseconds = new Date(Number(timestamp) * 1000).setUTCSeconds(0, 0)

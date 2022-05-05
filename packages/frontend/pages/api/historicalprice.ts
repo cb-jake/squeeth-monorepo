@@ -3,6 +3,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 
 const TWELVE_DATA_API = 'https://api.twelvedata.com'
 
+/**
+ * Get Historical price using https://twelvedata.com/docs#complex-data complex data API
+ */
 const handleRequest = async (req: NextApiRequest, res: NextApiResponse) => {
   const { timestamps, interval, pair, tz } = req.query
 
